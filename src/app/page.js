@@ -123,12 +123,18 @@ export default function Home() {
   /* ────────── Validation ────────── */
   const totalWeight = criteria.reduce((sum, c) => sum + (parseFloat(c.weight) || 0), 0);
   const isWeightValid = Math.abs(totalWeight - 1) < 0.005;
+  const hasAnyZeroWeight = criteria.some((c) => !c.weight || parseFloat(c.weight) <= 0);
   const benefitCount = criteria.filter((c) => c.type === 'Benefit').length;
   const costCount = criteria.filter((c) => c.type === 'Cost').length;
+  const hasZeroValues = alternatives.some((alt) => alt.values.some((v) => v === 0));
+  const hasEmptyNames = criteria.some((c) => !c.name.trim()) || alternatives.some((a) => !a.name.trim());
+
+  // All conditions that must pass before calculating
+  const canCalculate = isWeightValid && !hasAnyZeroWeight && !hasZeroValues && !hasEmptyNames;
 
   /* ────────── Calculate ────────── */
   const handleCalculate = () => {
-    if (!isWeightValid) return;
+    if (!canCalculate) return;
 
     const matrix = alternatives.map((alt) => alt.values.map((v) => parseFloat(v) || 0));
     const weights = criteria.map((c) => parseFloat(c.weight) || 0);
@@ -144,7 +150,6 @@ export default function Home() {
 
   /* ────────── Helpers ────────── */
   const fmt = (n, d = 6) => Number(n).toFixed(d);
-  const hasZeroValues = alternatives.some((alt) => alt.values.some((v) => v === 0));
 
   /* ══════════════════════════════════════
      RENDER
@@ -173,14 +178,14 @@ export default function Home() {
         <div className="sidebar-inner">
           {/* Brand */}
           <div className="sidebar-brand">
-            <div className="brand-icon">🧮</div>
+            <div className="brand-icon">W</div>
             <div className="brand-title">RNF WASPAS</div>
             <div className="brand-sub">Calculator</div>
           </div>
 
           {/* Team Badge */}
           <div className="team-badge">
-            <div className="badge-icon-wrap">👥</div>
+            <div className="badge-icon-wrap">K2</div>
             <div className="badge-text">
               <strong>Kelompok 2</strong>
               Sistem Pendukung Keputusan
@@ -191,7 +196,7 @@ export default function Home() {
           <div className="sidebar-section">
             <div className="sidebar-section-title">Pengaturan</div>
 
-            <label className="sidebar-label">📋 Jumlah Kriteria</label>
+            <label className="sidebar-label">Jumlah Kriteria</label>
             <input
               className="sidebar-input"
               type="text"
@@ -206,7 +211,7 @@ export default function Home() {
               placeholder="2–20"
             />
 
-            <label className="sidebar-label">📦 Jumlah Alternatif</label>
+            <label className="sidebar-label">Jumlah Alternatif</label>
             <input
               className="sidebar-input"
               type="text"
@@ -224,7 +229,7 @@ export default function Home() {
 
           {/* About */}
           <div className="sidebar-about">
-            <div className="sidebar-about-title">📖 Tentang WASPAS</div>
+            <div className="sidebar-about-title">Tentang WASPAS</div>
             <p>
               <strong>WASPAS</strong> <em>(Weighted Aggregated Sum Product Assessment)</em>{' '}
               menggabungkan metode <strong>SAW</strong> dan <strong>WP</strong> untuk
@@ -253,18 +258,18 @@ export default function Home() {
       <main className="main-content">
         {/* ──── Header ──── */}
         <header className="main-header">
-          <h1>🧮 RNF WASPAS Calculator</h1>
+          <h1>RNF WASPAS Calculator</h1>
           <p className="header-subtitle">
             Sistem Pendukung Keputusan — Metode Weighted Aggregated Sum Product Assessment
           </p>
-          <span className="header-badge">👥 Kelompok 2 • Teknik Informatika</span>
+          <span className="header-badge">Kelompok 2 • Teknik Informatika</span>
         </header>
 
         {/* ════════════════════════════
            TAHAP 1 — KRITERIA & BOBOT
            ════════════════════════════ */}
         <section className="step-section">
-          <div className="step-badge">📌 Tahap 1</div>
+          <div className="step-badge">Tahap 1</div>
           <h2>Kriteria &amp; Bobot</h2>
 
           <div className="table-container">
@@ -321,11 +326,16 @@ export default function Home() {
 
           <div className="validation-row">
             <span className={`validation-pill ${isWeightValid ? 'validation-valid' : 'validation-invalid'}`}>
-              {isWeightValid ? '✅' : '❌'} Total bobot = {totalWeight.toFixed(4)}{' '}
-              {isWeightValid ? '(Valid)' : '— harus = 1.0000'}
+              Total bobot = {totalWeight.toFixed(4)}{' '}
+              {isWeightValid ? '— Valid' : '— harus = 1.0000'}
             </span>
+            {hasAnyZeroWeight && (
+              <span className="validation-pill validation-invalid">
+                Setiap bobot harus lebih dari 0
+              </span>
+            )}
             <span className="validation-pill validation-info">
-              📊 Benefit: {benefitCount} &nbsp;|&nbsp; Cost: {costCount}
+              Benefit: {benefitCount} &nbsp;|&nbsp; Cost: {costCount}
             </span>
           </div>
         </section>
@@ -336,7 +346,7 @@ export default function Home() {
            TAHAP 2 — MATRIKS KEPUTUSAN
            ════════════════════════════ */}
         <section className="step-section">
-          <div className="step-badge">📌 Tahap 2</div>
+          <div className="step-badge">Tahap 2</div>
           <h2>Matriks Keputusan</h2>
 
           <div className="table-container">
@@ -386,7 +396,7 @@ export default function Home() {
           {hasZeroValues && (
             <div className="validation-row" style={{ marginTop: '0.75rem' }}>
               <span className="validation-pill validation-invalid">
-                ⚠️ Terdapat nilai 0 dalam matriks — pastikan semua nilai sudah diisi
+                Terdapat nilai 0 dalam matriks — pastikan semua nilai sudah diisi
               </span>
             </div>
           )}
@@ -398,21 +408,24 @@ export default function Home() {
            TAHAP 3 — PERHITUNGAN
            ════════════════════════════ */}
         <section className="step-section">
-          <div className="step-badge">🚀 Tahap 3</div>
+          <div className="step-badge">Tahap 3</div>
           <h2>Perhitungan WASPAS</h2>
 
           <button
             className="btn-calculate"
             onClick={handleCalculate}
-            disabled={!isWeightValid}
+            disabled={!canCalculate}
           >
-            🔢 Hitung WASPAS
+            Hitung WASPAS
           </button>
 
-          {!isWeightValid && (
-            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#c04040' }}>
-              ⚠️ Total bobot harus = 1 sebelum menghitung
-            </p>
+          {!canCalculate && (
+            <div style={{ marginTop: '0.6rem', fontSize: '0.8rem', color: '#c04040', lineHeight: 1.6 }}>
+              {!isWeightValid && <p>• Total bobot harus = 1.0000</p>}
+              {hasAnyZeroWeight && <p>• Setiap bobot kriteria harus lebih dari 0</p>}
+              {hasZeroValues && <p>• Semua nilai dalam matriks keputusan harus diisi (&gt; 0)</p>}
+              {hasEmptyNames && <p>• Nama kriteria dan alternatif tidak boleh kosong</p>}
+            </div>
           )}
         </section>
 
@@ -426,24 +439,20 @@ export default function Home() {
             {/* Metric Cards */}
             <div className="metric-grid">
               <div className="metric-card">
-                <div className="metric-icon">📋</div>
                 <div className="metric-label">Kriteria</div>
                 <div className="metric-value">{numCriteria}</div>
               </div>
               <div className="metric-card">
-                <div className="metric-icon">📦</div>
                 <div className="metric-label">Alternatif</div>
                 <div className="metric-value">{numAlternatives}</div>
               </div>
               <div className="metric-card">
-                <div className="metric-icon">🏆</div>
                 <div className="metric-label">Terbaik</div>
                 <div className="metric-value" style={{ fontSize: '1rem' }}>
                   {alternatives[results.rankings[0].index].name}
                 </div>
               </div>
               <div className="metric-card">
-                <div className="metric-icon">⭐</div>
                 <div className="metric-label">Nilai Tertinggi</div>
                 <div className="metric-value">{fmt(results.rankings[0].qi, 4)}</div>
               </div>
@@ -452,7 +461,7 @@ export default function Home() {
             {/* Normalized Matrix */}
             <details className="collapsible-section">
               <summary>
-                <span>📐 Matriks Ternormalisasi</span>
+                <span>Matriks Ternormalisasi</span>
                 <span className="chevron">▼</span>
               </summary>
               <div className="collapsible-content">
@@ -488,7 +497,7 @@ export default function Home() {
             {/* Q1 & Q2 Detail */}
             <details className="collapsible-section">
               <summary>
-                <span>📈 Detail Perhitungan Q1 (SAW) &amp; Q2 (WP)</span>
+                <span>Detail Perhitungan Q1 (SAW) &amp; Q2 (WP)</span>
                 <span className="chevron">▼</span>
               </summary>
               <div className="collapsible-content">
@@ -523,13 +532,12 @@ export default function Home() {
             {/* Ranking Table */}
             <div className="ranking-container">
               <div className="ranking-header">
-                <span style={{ fontSize: '1.25rem' }}>🏆</span>
                 <h3>Hasil Perangkingan WASPAS</h3>
               </div>
               <table className="ranking-table">
                 <thead>
                   <tr>
-                    <th style={{ width: '4.5rem', textAlign: 'center' }}>🏅 Peringkat</th>
+                    <th style={{ width: '4.5rem', textAlign: 'center' }}>Peringkat</th>
                     <th>Alternatif</th>
                     <th style={{ textAlign: 'right' }}>Q1 (SAW)</th>
                     <th style={{ textAlign: 'right' }}>Q2 (WP)</th>
@@ -568,7 +576,7 @@ export default function Home() {
 
             {/* Winner Card */}
             <div className="winner-card">
-              <div className="winner-icon">🥇</div>
+              <div className="winner-icon">★</div>
               <div className="winner-label">Alternatif Terbaik</div>
               <div className="winner-name">
                 {alternatives[results.rankings[0].index].name}
@@ -581,7 +589,7 @@ export default function Home() {
 
             {/* Bar Chart */}
             <div className="chart-section">
-              <div className="chart-title">📊 Visualisasi Nilai Akhir</div>
+              <div className="chart-title">Visualisasi Nilai Akhir</div>
               {(() => {
                 const maxQi = Math.max(...results.rankings.map((r) => r.qi));
                 return results.rankings.map((r) => {
@@ -608,7 +616,7 @@ export default function Home() {
 
         {/* ──── Footer ──── */}
         <footer className="main-footer">
-          <div className="footer-brand">🧮 RNF WASPAS Calculator</div>
+          <div className="footer-brand">RNF WASPAS Calculator</div>
           <div className="footer-divider" />
           <div className="footer-team">
             Dibuat oleh <strong>Kelompok 2</strong>
