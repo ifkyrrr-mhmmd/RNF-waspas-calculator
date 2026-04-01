@@ -113,21 +113,43 @@ export default function Home() {
     setAlternatives((prev) => {
       const updated = [...prev];
       const newValues = [...updated[altIndex].values];
-      newValues[critIndex] = parseFloat(value) || 0;
+      newValues[critIndex] = value; // Store raw value (string) during editing
       updated[altIndex] = { ...updated[altIndex], values: newValues };
       return updated;
     });
     setResults(null);
   };
 
+  // Convert raw value back to number on blur
+  const finalizeAlternativeValue = (altIndex, critIndex) => {
+    setAlternatives((prev) => {
+      const updated = [...prev];
+      const newValues = [...updated[altIndex].values];
+      const parsed = parseFloat(newValues[critIndex]);
+      newValues[critIndex] = isNaN(parsed) ? 0 : parsed;
+      updated[altIndex] = { ...updated[altIndex], values: newValues };
+      return updated;
+    });
+  };
+
+  // Convert weight back to number on blur
+  const finalizeWeight = (index) => {
+    setCriteria((prev) => {
+      const updated = [...prev];
+      const parsed = parseFloat(updated[index].weight);
+      updated[index] = { ...updated[index], weight: isNaN(parsed) ? 0 : parsed };
+      return updated;
+    });
+  };
+
   /* ────────── Validation ────────── */
   const totalWeight = criteria.reduce((sum, c) => sum + (parseFloat(c.weight) || 0), 0);
   const isWeightValid = Math.abs(totalWeight - 1) < 0.005;
-  const hasAnyZeroWeight = criteria.some((c) => !c.weight || parseFloat(c.weight) <= 0);
+  const hasAnyZeroWeight = criteria.some((c) => !parseFloat(c.weight));
   const benefitCount = criteria.filter((c) => c.type === 'Benefit').length;
   const costCount = criteria.filter((c) => c.type === 'Cost').length;
-  const hasZeroValues = alternatives.some((alt) => alt.values.some((v) => v === 0));
-  const hasEmptyNames = criteria.some((c) => !c.name.trim()) || alternatives.some((a) => !a.name.trim());
+  const hasZeroValues = alternatives.some((alt) => alt.values.some((v) => !parseFloat(v)));
+  const hasEmptyNames = criteria.some((c) => !String(c.name).trim()) || alternatives.some((a) => !String(a.name).trim());
 
   // All conditions that must pass before calculating
   const canCalculate = isWeightValid && !hasAnyZeroWeight && !hasZeroValues && !hasEmptyNames;
@@ -308,14 +330,15 @@ export default function Home() {
                     <td>
                       <input
                         className="table-input table-input-number"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="1"
+                        type="text"
+                        inputMode="decimal"
                         value={c.weight}
                         onChange={(e) =>
-                          updateCriterion(i, 'weight', parseFloat(e.target.value) || 0)
+                          updateCriterion(i, 'weight', e.target.value)
                         }
+                        onBlur={() => finalizeWeight(i)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="0.00"
                       />
                     </td>
                   </tr>
@@ -379,11 +402,13 @@ export default function Home() {
                       <td key={j}>
                         <input
                           className="table-input table-input-number"
-                          type="number"
-                          step="any"
-                          min="0"
+                          type="text"
+                          inputMode="decimal"
                           value={alt.values[j]}
                           onChange={(e) => updateAlternativeValue(i, j, e.target.value)}
+                          onBlur={() => finalizeAlternativeValue(i, j)}
+                          onFocus={(e) => e.target.select()}
+                          placeholder="0"
                         />
                       </td>
                     ))}
